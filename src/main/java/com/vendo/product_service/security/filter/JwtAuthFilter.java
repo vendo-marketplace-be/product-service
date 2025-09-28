@@ -22,7 +22,6 @@ import java.util.List;
 
 import static com.vendo.security.common.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.vendo.security.common.constants.AuthConstants.BEARER_PREFIX;
-import static com.vendo.security.common.type.TokenClaim.ROLES_CLAIM;
 import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 
 @Slf4j
@@ -50,7 +49,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             validateUserAccessibility(jwtToken);
 
             String subject = jwtHelper.extractSubject(jwtToken);
-            addAuthenticationToContext(subject, parseRolesFromToken(jwtToken));
+            addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(jwtToken));
 
             filterChain.doFilter(request, response);
         } catch (Exception e) {
@@ -93,17 +92,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 roles
         );
         SecurityContextHolder.getContext().setAuthentication(authToken);
-    }
-
-    private List<SimpleGrantedAuthority> parseRolesFromToken(String token) {
-        Object rolesObj = jwtHelper.extractClaim(token, claims -> claims.get(ROLES_CLAIM.getClaim()));
-
-        List<String> rolesList = rolesObj instanceof List<?> roles
-                ? roles.stream().map(Object::toString).toList()
-                : List.of();
-
-        return rolesList.stream()
-                .map(SimpleGrantedAuthority::new)
-                .toList();
     }
 }
