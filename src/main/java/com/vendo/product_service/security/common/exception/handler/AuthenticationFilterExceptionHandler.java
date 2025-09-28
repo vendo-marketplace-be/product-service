@@ -15,9 +15,6 @@ import java.io.IOException;
 public class AuthenticationFilterExceptionHandler {
 
     public void handle(Exception e, HttpServletResponse response) {
-        if (e == null) {
-            return;
-        }
 
         if (e instanceof AccessDeniedException) {
             log.warn("AccessDeniedException: {}", e.getMessage());
@@ -26,7 +23,7 @@ public class AuthenticationFilterExceptionHandler {
         }
 
         if (e instanceof AuthenticationException) {
-            log.warn("AuthenticationCredentialsNotFoundException: {}", e.getMessage());
+            log.warn("AuthenticationException: {}", e.getMessage());
             writeExceptionResponse(e.getMessage(), HttpStatus.SC_UNAUTHORIZED, response);
             return;
         }
@@ -34,11 +31,7 @@ public class AuthenticationFilterExceptionHandler {
         if (e instanceof JwtException) {
             log.warn("JwtException: {}", e.getMessage());
             writeExceptionResponse("Token has expired or invalid", HttpStatus.SC_UNAUTHORIZED, response);
-            return;
         }
-
-        log.warn("Exception: {}", e.getMessage());
-        writeExceptionResponse(e.getMessage(), HttpStatus.SC_BAD_REQUEST, response);
     }
 
     private void writeExceptionResponse(Object responseTarget, int statusCode, HttpServletResponse response) {
