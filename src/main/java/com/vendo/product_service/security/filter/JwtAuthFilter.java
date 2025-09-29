@@ -80,7 +80,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         Object statusTarget = jwtHelper.extractClaim(jwtToken, claims -> claims.get(STATUS_CLAIM.getClaim()));
-        if (statusTarget == null || UserStatus.BLOCKED.equals(statusTarget)) {
+        if (statusTarget == null) {
+            throw new AccessDeniedException("User status missing");
+        }
+
+        UserStatus userStatus;
+        try {
+            userStatus = UserStatus.valueOf(statusTarget.toString());
+        } catch (IllegalArgumentException e) {
+            throw new AccessDeniedException("Invalid user status");
+        }
+
+        if (userStatus == UserStatus.BLOCKED) {
             throw new AccessDeniedException("User is blocked");
         }
     }

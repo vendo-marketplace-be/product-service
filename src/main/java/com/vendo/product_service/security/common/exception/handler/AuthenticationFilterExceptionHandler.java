@@ -32,6 +32,9 @@ public class AuthenticationFilterExceptionHandler {
             log.warn("JwtException: {}", e.getMessage());
             writeExceptionResponse("Token has expired or invalid", HttpStatus.SC_UNAUTHORIZED, response);
         }
+
+        log.error("Unexpected exception in AuthenticationFilter: ", e);
+        writeExceptionResponse("Internal server error", HttpStatus.SC_INTERNAL_SERVER_ERROR, response);
     }
 
     private void writeExceptionResponse(Object responseTarget, int statusCode, HttpServletResponse response) {
