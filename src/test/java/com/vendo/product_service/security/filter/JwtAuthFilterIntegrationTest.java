@@ -1,8 +1,7 @@
 package com.vendo.product_service.security.filter;
 
 import com.vendo.domain.user.common.type.UserStatus;
-import com.vendo.product_service.builder.ProductTestTokenBuilder;
-import com.vendo.product_service.security.common.config.JwtProperties;
+import com.vendo.product_service.builder.JwtTokenBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,14 +32,10 @@ public class JwtAuthFilterIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JwtProperties jwtProperties;
-
-    @Autowired
-    private ProductTestTokenBuilder tokenFactory;
+    private JwtTokenBuilder tokenFactory;
 
     @BeforeEach
     void setUp() {
-        jwtProperties.setSecretKey("secretKeysecretKeysecretKeysecretKey");
         SecurityContextHolder.clearContext();
     }
 
@@ -62,7 +57,6 @@ public class JwtAuthFilterIntegrationTest {
                 )
                 .andExpect(status().isOk())
                 .andReturn().getResponse();
-
         String responseContent = response.getContentAsString();
 
         assertThat(responseContent).isNotNull();
@@ -71,16 +65,18 @@ public class JwtAuthFilterIntegrationTest {
 
     @Test
     void doFilterInternal_shouldReturnUnauthorized_whenNoTokenInRequest() throws Exception {
+
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping"))
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse();
         String responseContent = response.getContentAsString();
+
         assertThat(responseContent).isNotBlank();
         assertThat(responseContent).isEqualTo("Missing or invalid Authorization header");
     }
 
     @Test
-    void doFilterInternal_shouldPassFilter_whenTokenIsValid() throws Exception {
+    void doFilterInternal_shouldPassAuthorization_whenTokenIsValid() throws Exception {
         String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
 
         mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + token))
@@ -94,8 +90,10 @@ public class JwtAuthFilterIntegrationTest {
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, token))
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
 
-        assertThat(response.getContentAsString()).isEqualTo("Missing or invalid Authorization header");
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Missing or invalid Authorization header");
     }
 
     @Test
@@ -105,8 +103,10 @@ public class JwtAuthFilterIntegrationTest {
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isForbidden())
                 .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
 
-        assertThat(response.getContentAsString()).isEqualTo("User is blocked");
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("User is blocked");
     }
 
     @Test
@@ -116,8 +116,10 @@ public class JwtAuthFilterIntegrationTest {
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + expiredToken))
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
 
-        assertThat(response.getContentAsString()).isEqualTo("Token expired");
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Token expired");
     }
 
     @Test
@@ -127,8 +129,10 @@ public class JwtAuthFilterIntegrationTest {
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + tokenWithoutStatus))
                 .andExpect(status().isForbidden())
                 .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
 
-        assertThat(response.getContentAsString()).isEqualTo("User status missing");
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("User status missing");
     }
 
     @Test
@@ -138,7 +142,36 @@ public class JwtAuthFilterIntegrationTest {
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + tokenWithInvalidStatus))
                 .andExpect(status().isForbidden())
                 .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
 
-        assertThat(response.getContentAsString()).isEqualTo("Invalid user status");
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Invalid user status");
+    }
+
+    @Test
+    void doFilterInternal_shouldReturnUnauthorized_whenTokenIsInvalidFormatToken() throws Exception {
+        String malformedToken = tokenFactory.generateInvalidFormatToken();
+
+        MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + malformedToken))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
+
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Token has expired or invalid");
+    }
+
+    @Test
+    void doFilterInternal_shouldReturnUnauthorized_whenTokenHasInvalidSignature() throws Exception {
+        String invalidSignedToken = tokenFactory.generateTokenWithInvalidSignature("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
+
+        MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + invalidSignedToken))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
+
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Token has expired or invalid");
+
     }
 }

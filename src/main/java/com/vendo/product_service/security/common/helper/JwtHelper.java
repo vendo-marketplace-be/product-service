@@ -1,5 +1,7 @@
 package com.vendo.product_service.security.common.helper;
 
+
+import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.vendo.security.common.type.TokenClaim.ROLES_CLAIM;
+import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 
 @Component
 @RequiredArgsConstructor
@@ -51,7 +54,7 @@ public class JwtHelper {
         }
     }
 
-    public  <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
@@ -62,6 +65,20 @@ public class JwtHelper {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    public UserStatus parseUserStatus(String token) throws IllegalArgumentException {
+        Object statusTarget = extractClaim(token, claims -> claims.get(STATUS_CLAIM.getClaim()));
+
+        if (statusTarget == null) {
+            throw new IllegalArgumentException("User status missing");
+        }
+
+        try {
+            return UserStatus.valueOf(statusTarget.toString());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid user status");
+        }
     }
 
     public Key getSignInKey() {

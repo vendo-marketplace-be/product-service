@@ -1,8 +1,8 @@
 package com.vendo.product_service.security.filter;
 
+import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.exception.handler.AuthenticationFilterExceptionHandler;
 import com.vendo.product_service.security.common.helper.JwtHelper;
-import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.security.common.exception.AccessDeniedException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,7 +22,6 @@ import java.util.List;
 
 import static com.vendo.security.common.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.vendo.security.common.constants.AuthConstants.BEARER_PREFIX;
-import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 
 @Slf4j
 @Component
@@ -74,25 +73,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private void validateUserAccessibility(String jwtToken) {
-        boolean tokenExpired = jwtHelper.isTokenExpired(jwtToken);
-        if (tokenExpired) {
+        if (jwtHelper.isTokenExpired(jwtToken)) {
             throw new AuthenticationCredentialsNotFoundException("Token expired");
         }
 
-        Object statusTarget = jwtHelper.extractClaim(jwtToken, claims -> claims.get(STATUS_CLAIM.getClaim()));
-        if (statusTarget == null) {
-            throw new AccessDeniedException("User status missing");
-        }
-
-        UserStatus userStatus;
         try {
-            userStatus = UserStatus.valueOf(statusTarget.toString());
-        } catch (IllegalArgumentException e) {
-            throw new AccessDeniedException("Invalid user status");
-        }
+            UserStatus status = jwtHelper.parseUserStatus(jwtToken);
 
-        if (userStatus == UserStatus.BLOCKED) {
-            throw new AccessDeniedException("User is blocked");
+            if (status == UserStatus.BLOCKED) {
+                throw new AccessDeniedException("User is blocked");
+            }
+        } catch (IllegalArgumentException e) {
+            throw new AccessDeniedException(e.getMessage());
         }
     }
 

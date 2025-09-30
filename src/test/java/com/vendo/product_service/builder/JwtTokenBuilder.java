@@ -16,16 +16,20 @@ import java.util.List;
 import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 
 @Component
-public class ProductTestTokenBuilder {
+public class JwtTokenBuilder {
 
     private final JwtProperties jwtProperties;
 
-    public ProductTestTokenBuilder(JwtProperties jwtProperties) {
+    public JwtTokenBuilder(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
     }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private SecretKey getBadSecretKey() {
+        return Keys.hmacShaKeyFor(jwtProperties.getBadSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(String subject, UserStatus status, List<String> roles) {
@@ -73,5 +77,32 @@ public class ProductTestTokenBuilder {
                 .expiration(Date.from(now.plus(1, ChronoUnit.MINUTES)))
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
+    }
+
+    public String generateTokenWithInvalidSignature(String subject, UserStatus status, List<String> roles) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(subject)
+                .claim("roles", roles)
+                .claim(STATUS_CLAIM.getClaim(), status)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(1, ChronoUnit.MINUTES)))
+                .signWith(getBadSecretKey(), Jwts.SIG.HS256)
+                .compact();
+    }
+
+    public String generateTokenWithoutRoles(String subject, UserStatus status) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(subject)
+                .claim(STATUS_CLAIM.getClaim(), status)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(1, ChronoUnit.MINUTES)))
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
+    }
+
+    public String generateInvalidFormatToken() {
+        return "this.is.not.a.jwt";
     }
 }

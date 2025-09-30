@@ -1,6 +1,7 @@
 package com.vendo.product_service.security.common.exception.handler;
 
 import com.vendo.security.common.exception.AccessDeniedException;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -28,9 +29,22 @@ public class AuthenticationFilterExceptionHandler {
             return;
         }
 
+        if (e instanceof ExpiredJwtException) {
+            log.warn("ExpiredJwtException: {}", e.getMessage());
+            writeExceptionResponse("Token expired", HttpStatus.SC_UNAUTHORIZED, response);
+            return;
+        }
+
         if (e instanceof JwtException) {
             log.warn("JwtException: {}", e.getMessage());
             writeExceptionResponse("Token has expired or invalid", HttpStatus.SC_UNAUTHORIZED, response);
+            return;
+        }
+
+        if (e instanceof IllegalArgumentException) {
+            log.warn("IllegalArgumentException: {}", e.getMessage());
+            writeExceptionResponse("Invalid token or user data", HttpStatus.SC_BAD_REQUEST, response);
+            return;
         }
 
         log.error("Unexpected exception in AuthenticationFilter: ", e);

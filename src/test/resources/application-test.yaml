@@ -1,0 +1,4 @@
+security:
+  jwt:
+    secret-key: secretKeysecretKeysecretKeysecretKeysecretKey
+    bad-secret-key: wrongSecretKeywrongSecretKeywrongSecretKeywrongSecretKey
