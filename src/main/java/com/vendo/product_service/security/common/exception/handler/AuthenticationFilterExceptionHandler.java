@@ -1,6 +1,6 @@
 package com.vendo.product_service.security.common.exception.handler;
 
-import com.vendo.product_service.security.common.exception.ExpiredJwtException;
+import com.vendo.product_service.security.common.exception.InvalidTokenException;
 import com.vendo.security.common.exception.AccessDeniedException;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +25,9 @@ public class AuthenticationFilterExceptionHandler {
         return ResponseEntity.status(SC_UNAUTHORIZED).body(e.getMessage());
     }
 
-    @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<Object> handleExpiredJwtException(ExpiredJwtException e) {
-        return ResponseEntity.status(SC_UNAUTHORIZED).body("Token expired");
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<Object> handleInvalidTokenException(InvalidTokenException e) {
+        return ResponseEntity.status(SC_UNAUTHORIZED).body(e.getMessage());
     }
 
     @ExceptionHandler(JwtException.class)

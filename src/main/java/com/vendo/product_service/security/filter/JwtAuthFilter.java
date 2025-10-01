@@ -1,7 +1,7 @@
 package com.vendo.product_service.security.filter;
 
 import com.vendo.domain.user.common.type.UserStatus;
-import com.vendo.product_service.security.common.exception.ExpiredJwtException;
+import com.vendo.product_service.security.common.exception.InvalidTokenException;
 import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.security.common.exception.AccessDeniedException;
 import io.jsonwebtoken.JwtException;
@@ -76,7 +76,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private void throwIfTokenExpired(String jwtToken) {
         if (jwtHelper.isTokenExpired(jwtToken)) {
-            throw new ExpiredJwtException("Token expired");
+            // TODO handle this exception
+            throw new InvalidTokenException("Token not valid");
         }
     }
 
