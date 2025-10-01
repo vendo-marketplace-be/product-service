@@ -1,66 +1,37 @@
 package com.vendo.product_service.security.common.exception.handler;
 
+import com.vendo.product_service.security.common.exception.ExpiredJwtException;
 import com.vendo.security.common.exception.AccessDeniedException;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.io.IOException;
+import static jakarta.servlet.http.HttpServletResponse.*;
 
 @Slf4j
-@Component
+@RestControllerAdvice
 public class AuthenticationFilterExceptionHandler {
 
-    public void handle(Exception e, HttpServletResponse response) {
-
-        if (e instanceof AccessDeniedException) {
-            log.warn("AccessDeniedException: {}", e.getMessage());
-            writeExceptionResponse(e.getMessage(), HttpStatus.SC_FORBIDDEN, response);
-            return;
-        }
-
-        if (e instanceof AuthenticationException) {
-            log.warn("AuthenticationException: {}", e.getMessage());
-            writeExceptionResponse(e.getMessage(), HttpStatus.SC_UNAUTHORIZED, response);
-            return;
-        }
-
-        if (e instanceof ExpiredJwtException) {
-            log.warn("ExpiredJwtException: {}", e.getMessage());
-            writeExceptionResponse("Token expired", HttpStatus.SC_UNAUTHORIZED, response);
-            return;
-        }
-
-        if (e instanceof JwtException) {
-            log.warn("JwtException: {}", e.getMessage());
-            writeExceptionResponse("Token has expired or invalid", HttpStatus.SC_UNAUTHORIZED, response);
-            return;
-        }
-
-        if (e instanceof IllegalArgumentException) {
-            log.warn("IllegalArgumentException: {}", e.getMessage());
-            writeExceptionResponse("Invalid token or user data", HttpStatus.SC_BAD_REQUEST, response);
-            return;
-        }
-
-        log.error("Unexpected exception in AuthenticationFilter: ", e);
-        writeExceptionResponse("Internal server error", HttpStatus.SC_INTERNAL_SERVER_ERROR, response);
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException e) {
+        return ResponseEntity.status(SC_FORBIDDEN).body(e.getMessage());
     }
 
-    private void writeExceptionResponse(Object responseTarget, int statusCode, HttpServletResponse response) {
-        try {
-            if (responseTarget == null) {
-                throw new IllegalArgumentException("Response target cannot be null");
-            }
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException e) {
+        return ResponseEntity.status(SC_UNAUTHORIZED).body(e.getMessage());
+    }
 
-            response.setStatus(statusCode);
-            response.getWriter().write(String.valueOf(responseTarget));
-        } catch (IOException e) {
-            log.error("IOException: ", e);
-        }
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<Object> handleExpiredJwtException(ExpiredJwtException e) {
+        return ResponseEntity.status(SC_UNAUTHORIZED).body("Token expired");
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<Object> handleJwtException(JwtException e) {
+        return ResponseEntity.status(SC_UNAUTHORIZED).body("Token has expired or invalid");
     }
 }

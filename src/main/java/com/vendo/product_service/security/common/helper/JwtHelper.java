@@ -1,6 +1,5 @@
 package com.vendo.product_service.security.common.helper;
 
-
 import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.config.JwtProperties;
 import io.jsonwebtoken.Claims;
@@ -74,11 +73,7 @@ public class JwtHelper {
             throw new IllegalArgumentException("User status missing");
         }
 
-        try {
-            return UserStatus.valueOf(statusTarget.toString());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid user status");
-        }
+        return UserStatus.valueOf(statusTarget.toString());
     }
 
     public Key getSignInKey() {

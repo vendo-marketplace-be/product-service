@@ -1,21 +1,23 @@
 package com.vendo.product_service.security.filter;
 
 import com.vendo.domain.user.common.type.UserStatus;
-import com.vendo.product_service.security.common.exception.handler.AuthenticationFilterExceptionHandler;
+import com.vendo.product_service.security.common.exception.ExpiredJwtException;
 import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.security.common.exception.AccessDeniedException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,7 +34,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final ProductAntPathResolver productAntPathResolver;
 
-    private final AuthenticationFilterExceptionHandler authenticationFilterExceptionHandler;
+    @Qualifier("handlerExceptionResolver")
+    private final HandlerExceptionResolver handlerExceptionResolver;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -45,15 +48,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             String jwtToken = getTokenFromRequest(request);
-            validateUserAccessibility(jwtToken);
-
-            String subject = jwtHelper.extractSubject(jwtToken);
+            throwIfTokenExpired(jwtToken);
+            String subject = validateUserAccessibility(jwtToken);
             addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(jwtToken));
-
-            filterChain.doFilter(request, response);
         } catch (Exception e) {
-            authenticationFilterExceptionHandler.handle(e, response);
+            handlerExceptionResolver.resolveException(request, response, null, e);
         }
+
+        filterChain.doFilter(request, response);
     }
 
     @Override
@@ -69,20 +71,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return authorization.substring(BEARER_PREFIX.length());
         }
 
-        throw new AuthenticationCredentialsNotFoundException("Missing or invalid Authorization header");
+        throw new JwtException("Missing or invalid Authorization header");
     }
 
-    private void validateUserAccessibility(String jwtToken) {
+    private void throwIfTokenExpired(String jwtToken) {
         if (jwtHelper.isTokenExpired(jwtToken)) {
-            throw new AuthenticationCredentialsNotFoundException("Token expired");
+            throw new ExpiredJwtException("Token expired");
         }
+    }
 
+    private String validateUserAccessibility(String jwtToken) {
         try {
             UserStatus status = jwtHelper.parseUserStatus(jwtToken);
 
             if (status == UserStatus.BLOCKED) {
                 throw new AccessDeniedException("User is blocked");
             }
+
+            return jwtHelper.extractSubject(jwtToken);
         } catch (IllegalArgumentException e) {
             throw new AccessDeniedException(e.getMessage());
         }
