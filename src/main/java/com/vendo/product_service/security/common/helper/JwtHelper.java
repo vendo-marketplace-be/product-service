@@ -2,10 +2,7 @@ package com.vendo.product_service.security.common.helper;
 
 import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.config.JwtProperties;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static com.vendo.security.common.type.TokenClaim.ROLES_CLAIM;
@@ -27,25 +25,29 @@ public class JwtHelper {
 
     private final JwtProperties jwtProperties;
 
-    public String extractSubject(String token) {
+    public Optional<String> extractSubject(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
     public List<SimpleGrantedAuthority> parseRolesFromToken(String token) {
-        Object rolesObj = extractClaim(token, claims -> claims.get(ROLES_CLAIM.getClaim()));
-
-        List<String> rolesList = rolesObj instanceof List<?> roles
-                ? roles.stream().map(Object::toString).toList()
-                : List.of();
-
-        return rolesList.stream()
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+        return extractClaim(token, claims -> claims.get(ROLES_CLAIM.getClaim()))
+                .map(obj -> {
+                    if (obj instanceof List<?> roles) {
+                        return roles.stream()
+                                .map(Object::toString)
+                                .map(SimpleGrantedAuthority::new)
+                                .toList();
+                    }
+                    return List.<SimpleGrantedAuthority>of();
+                })
+                .orElse(List.of());
     }
 
     public boolean isTokenExpired(String token) {
         try {
-            return extractClaim(token, Claims::getExpiration).before(new Date());
+            return extractClaim(token, Claims::getExpiration)
+                    .map(expiration -> expiration.before(new Date()))
+                    .orElse(true);
         } catch (ExpiredJwtException exception) {
             return true;
         } catch (JwtException exception) {
@@ -53,9 +55,13 @@ public class JwtHelper {
         }
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+    public <T> Optional<T> extractClaim(String token, Function<Claims, T> claimsResolver) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return Optional.ofNullable(claimsResolver.apply(claims));
+        } catch (JwtException e) {
+            return Optional.empty();
+        }
     }
 
     public Claims extractAllClaims(String token) {
@@ -67,16 +73,31 @@ public class JwtHelper {
     }
 
     public UserStatus parseUserStatus(String token) throws IllegalArgumentException {
-        Object statusTarget = extractClaim(token, claims -> claims.get(STATUS_CLAIM.getClaim()));
-
-        if (statusTarget == null) {
-            throw new IllegalArgumentException("User status missing");
-        }
-
-        return UserStatus.valueOf(statusTarget.toString());
+        return extractClaim(token, claims -> claims.get(STATUS_CLAIM.getClaim()))
+                .map(Object::toString)
+                .map(statusStr -> {
+                    try {
+                        return UserStatus.valueOf(statusStr);
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException("Invalid user status");
+                    }
+                })
+                .orElseThrow(() -> new IllegalArgumentException("User status missing"));
     }
 
     public Key getSignInKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private Jws<Claims> parseSignedClaims(String token) {
+        return Jwts.parser()
+                .verifyWith((SecretKey) getSignInKey())
+                .build()
+                .parseSignedClaims(token);
+    }
+
+    public JwsHeader extractHeader(String token) {
+        return parseSignedClaims(token)
+                .getHeader();
     }
 }

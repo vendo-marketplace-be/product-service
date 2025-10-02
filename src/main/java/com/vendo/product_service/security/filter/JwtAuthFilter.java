@@ -4,6 +4,9 @@ import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.exception.InvalidTokenException;
 import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.security.common.exception.AccessDeniedException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -48,11 +51,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             String jwtToken = getTokenFromRequest(request);
+
             throwIfTokenExpired(jwtToken);
             String subject = validateUserAccessibility(jwtToken);
             addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(jwtToken));
         } catch (Exception e) {
             handlerExceptionResolver.resolveException(request, response, null, e);
+            return;
         }
 
         filterChain.doFilter(request, response);
@@ -75,9 +80,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private void throwIfTokenExpired(String jwtToken) {
+        Claims claims = jwtHelper.extractAllClaims(jwtToken);
+        JwsHeader header = jwtHelper.extractHeader(jwtToken);
+
         if (jwtHelper.isTokenExpired(jwtToken)) {
-            // TODO handle this exception
-            throw new InvalidTokenException("Token not valid");
+            throw new ExpiredJwtException(header, claims, "Token is expired");
         }
     }
 
@@ -89,7 +96,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 throw new AccessDeniedException("User is blocked");
             }
 
-            return jwtHelper.extractSubject(jwtToken);
+            return jwtHelper.extractSubject(jwtToken)
+                    .orElseThrow(() -> new InvalidTokenException("Token subject missing"));
+
         } catch (IllegalArgumentException e) {
             throw new AccessDeniedException(e.getMessage());
         }

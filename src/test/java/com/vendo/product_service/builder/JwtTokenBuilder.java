@@ -4,6 +4,9 @@ import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.config.JwtProperties;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -18,18 +21,19 @@ import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 @Component
 public class JwtTokenBuilder {
 
-    private final JwtProperties jwtProperties;
+    @Autowired
+    private JwtProperties jwtProperties;
 
-    public JwtTokenBuilder(JwtProperties jwtProperties) {
-        this.jwtProperties = jwtProperties;
-    }
+    @Value("security.jwt.bad-secret-key")
+    private String BAD_SECRET_KEY;
+
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
     private SecretKey getBadSecretKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getBadSecretKey().getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(BAD_SECRET_KEY.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(String subject, UserStatus status, List<String> roles) {

@@ -1,9 +1,9 @@
 package com.vendo.product_service.security.helper;
 
 import com.vendo.domain.user.common.type.UserStatus;
+import com.vendo.product_service.builder.JwtTokenBuilder;
 import com.vendo.product_service.security.common.config.JwtProperties;
 import com.vendo.product_service.security.common.helper.JwtHelper;
-import com.vendo.product_service.builder.JwtTokenBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,20 +23,23 @@ public class JwtHelperTest {
     @Autowired
     private JwtProperties jwtProperties;
 
-    private JwtHelper  jwtHelper;
+    @Autowired
     private JwtTokenBuilder tokenFactory;
+
+    private JwtHelper jwtHelper;
+
 
     @BeforeEach
     void setup() {
         jwtHelper = new JwtHelper(jwtProperties);
-        tokenFactory = new JwtTokenBuilder(jwtProperties);
     }
 
     @Test
     void extractSubject_shouldReturnCorrectSubject() {
         String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
 
-        String subject = jwtHelper.extractSubject(token);
+        String subject = jwtHelper.extractSubject(token)
+                .orElseThrow(() -> new AssertionError("Subject should be present"));
 
         assertThat(subject).isEqualTo("user-123");
     }
@@ -72,7 +75,8 @@ public class JwtHelperTest {
     void extractClaim_shouldReturnNullForMissingStatus() {
         String tokenWithoutStatus = tokenFactory.generateTokenWithoutStatus("user-123", List.of("ROLE_USER"));
 
-        Object status = jwtHelper.extractClaim(tokenWithoutStatus, claims -> claims.get("status"));
+        Object status = jwtHelper.extractClaim(tokenWithoutStatus, claims -> claims.get("status"))
+                .orElse(null);
 
         assertThat(status).isNull();
     }
@@ -81,7 +85,8 @@ public class JwtHelperTest {
     void extractClaim_shouldReturnInvalidStatusString() {
         String tokenInvalidStatus = tokenFactory.generateTokenWithInvalidStatus("user-123", List.of("ROLE_USER"));
 
-        Object status = jwtHelper.extractClaim(tokenInvalidStatus, claims -> claims.get("status"));
+        Object status = jwtHelper.extractClaim(tokenInvalidStatus, claims -> claims.get("status"))
+                .orElse(null);
 
         assertThat(status).isEqualTo("INVALID_STATUS");
     }
