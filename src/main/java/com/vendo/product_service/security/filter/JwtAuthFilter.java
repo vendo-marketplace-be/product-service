@@ -5,8 +5,6 @@ import com.vendo.product_service.security.common.exception.InvalidTokenException
 import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.security.common.exception.AccessDeniedException;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -51,10 +49,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             String jwtToken = getTokenFromRequest(request);
+            Claims claims = jwtHelper.extractAllClaims(jwtToken);
 
-            throwIfTokenExpired(jwtToken);
-            String subject = validateUserAccessibility(jwtToken);
-            addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(jwtToken));
+            String subject = validateUserAccessibility(jwtToken, claims);
+            addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(claims));
         } catch (Exception e) {
             handlerExceptionResolver.resolveException(request, response, null, e);
             return;
@@ -79,29 +77,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         throw new JwtException("Missing or invalid Authorization header");
     }
 
-    private void throwIfTokenExpired(String jwtToken) {
-        Claims claims = jwtHelper.extractAllClaims(jwtToken);
-        JwsHeader header = jwtHelper.extractHeader(jwtToken);
+    private String validateUserAccessibility(String jwtToken, Claims claims) {
+        UserStatus status = jwtHelper.parseUserStatus(claims);
 
-        if (jwtHelper.isTokenExpired(jwtToken)) {
-            throw new ExpiredJwtException(header, claims, "Token is expired");
+        if (status == UserStatus.BLOCKED) {
+            throw new AccessDeniedException("User is blocked");
         }
-    }
 
-    private String validateUserAccessibility(String jwtToken) {
-        try {
-            UserStatus status = jwtHelper.parseUserStatus(jwtToken);
-
-            if (status == UserStatus.BLOCKED) {
-                throw new AccessDeniedException("User is blocked");
-            }
-
-            return jwtHelper.extractSubject(jwtToken)
-                    .orElseThrow(() -> new InvalidTokenException("Token subject missing"));
-
-        } catch (IllegalArgumentException e) {
-            throw new AccessDeniedException(e.getMessage());
-        }
+        return jwtHelper.extractSubject(jwtToken)
+                .orElseThrow(() -> new InvalidTokenException("Token subject missing"));
     }
 
     private void addAuthenticationToContext(String subject, List<SimpleGrantedAuthority> roles) {

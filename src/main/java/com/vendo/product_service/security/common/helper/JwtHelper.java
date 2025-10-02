@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -29,75 +28,42 @@ public class JwtHelper {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public List<SimpleGrantedAuthority> parseRolesFromToken(String token) {
-        return extractClaim(token, claims -> claims.get(ROLES_CLAIM.getClaim()))
-                .map(obj -> {
-                    if (obj instanceof List<?> roles) {
-                        return roles.stream()
-                                .map(Object::toString)
-                                .map(SimpleGrantedAuthority::new)
-                                .toList();
-                    }
-                    return List.<SimpleGrantedAuthority>of();
-                })
-                .orElse(List.of());
-    }
+    public List<SimpleGrantedAuthority> parseRolesFromToken(Claims claims) {
+        Object rolesClaim = claims.get(ROLES_CLAIM.getClaim());
 
-    public boolean isTokenExpired(String token) {
-        try {
-            return extractClaim(token, Claims::getExpiration)
-                    .map(expiration -> expiration.before(new Date()))
-                    .orElse(true);
-        } catch (ExpiredJwtException exception) {
-            return true;
-        } catch (JwtException exception) {
-            return false;
+        if (rolesClaim instanceof List<?> roles) {
+            return roles.stream()
+                    .map(Object::toString)
+                    .map(SimpleGrantedAuthority::new)
+                    .toList();
         }
+
+        throw new IllegalArgumentException("Invalid roles");
     }
 
     public <T> Optional<T> extractClaim(String token, Function<Claims, T> claimsResolver) {
-        try {
-            Claims claims = extractAllClaims(token);
-            return Optional.ofNullable(claimsResolver.apply(claims));
-        } catch (JwtException e) {
-            return Optional.empty();
-        }
+        Claims claims = extractAllClaims(token);
+        return Optional.ofNullable(claimsResolver.apply(claims));
     }
 
     public Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith((SecretKey) getSignInKey())
-                .build()
-                .parseSignedClaims(token)
+        return parseSignedClaims(token)
                 .getPayload();
     }
 
-    public UserStatus parseUserStatus(String token) throws IllegalArgumentException {
-        return extractClaim(token, claims -> claims.get(STATUS_CLAIM.getClaim()))
-                .map(Object::toString)
-                .map(statusStr -> {
-                    try {
-                        return UserStatus.valueOf(statusStr);
-                    } catch (IllegalArgumentException e) {
-                        throw new IllegalArgumentException("Invalid user status");
-                    }
-                })
-                .orElseThrow(() -> new IllegalArgumentException("User status missing"));
+    public UserStatus parseUserStatus(Claims claims) throws IllegalArgumentException {
+        Object status = claims.get(STATUS_CLAIM.getClaim());
+        return UserStatus.valueOf(String.valueOf(status));
     }
 
     public Key getSignInKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
-    private Jws<Claims> parseSignedClaims(String token) {
+    private Jws<Claims> parseSignedClaims(String token) throws JwtException {
         return Jwts.parser()
                 .verifyWith((SecretKey) getSignInKey())
                 .build()
                 .parseSignedClaims(token);
-    }
-
-    public JwsHeader extractHeader(String token) {
-        return parseSignedClaims(token)
-                .getHeader();
     }
 }

@@ -119,7 +119,7 @@ public class JwtAuthFilterIntegrationTest {
         String responseContent = response.getContentAsString();
 
         assertThat(responseContent).isNotBlank();
-        assertThat(responseContent).isEqualTo("Token expired");
+        assertThat(responseContent).isEqualTo("Token has expired");
     }
 
     @Test

@@ -10,8 +10,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import static jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN;
-import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
+import static jakarta.servlet.http.HttpServletResponse.*;
 
 @Slf4j
 @RestControllerAdvice
@@ -34,11 +33,19 @@ public class AuthenticationFilterExceptionHandler {
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<Object> handleJwtException(JwtException e) {
+        log.warn("JwtException: ", e);
         return ResponseEntity.status(SC_UNAUTHORIZED).body("Token has expired or invalid");
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
     public ResponseEntity<Object> handleExpiredJwtException(ExpiredJwtException e) {
-        return ResponseEntity.status(SC_UNAUTHORIZED).body(e.getMessage());
+        log.warn("ExpiredJwtException: ", e);
+        return ResponseEntity.status(SC_UNAUTHORIZED).body("Token has expired");
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.error("IllegalArgumentException: ", e);
+        return ResponseEntity.status(SC_INTERNAL_SERVER_ERROR).body("Authorization failed");
     }
 }
