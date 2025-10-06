@@ -2,7 +2,11 @@ package com.vendo.product_service.security.common.helper;
 
 import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.config.JwtProperties;
-import io.jsonwebtoken.*;
+import com.vendo.product_service.security.common.exception.InvalidTokenException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -38,7 +42,7 @@ public class JwtHelper {
                     .toList();
         }
 
-        throw new IllegalArgumentException("Invalid roles");
+        throw new InvalidTokenException("Invalid roles");
     }
 
     public <T> Optional<T> extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -51,9 +55,13 @@ public class JwtHelper {
                 .getPayload();
     }
 
-    public UserStatus parseUserStatus(Claims claims) throws IllegalArgumentException {
-        Object status = claims.get(STATUS_CLAIM.getClaim());
-        return UserStatus.valueOf(String.valueOf(status));
+    public UserStatus parseUserStatus(Claims claims) {
+        try {
+            Object status = claims.get(STATUS_CLAIM.getClaim());
+            return UserStatus.valueOf(String.valueOf(status));
+        } catch (IllegalArgumentException e) {
+            throw new InvalidTokenException("Invalid user status");
+        }
     }
 
     public Key getSignInKey() {

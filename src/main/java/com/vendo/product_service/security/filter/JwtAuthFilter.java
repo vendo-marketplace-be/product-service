@@ -5,7 +5,6 @@ import com.vendo.product_service.security.common.exception.InvalidTokenException
 import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.security.common.exception.AccessDeniedException;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -74,7 +73,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return authorization.substring(BEARER_PREFIX.length());
         }
 
-        throw new JwtException("Missing or invalid Authorization header");
+        throw new InvalidTokenException("Missing or invalid Authorization header");
     }
 
     private String validateUserAccessibility(String jwtToken, Claims claims) {

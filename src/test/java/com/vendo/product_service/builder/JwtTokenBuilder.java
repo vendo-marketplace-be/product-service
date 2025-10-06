@@ -5,7 +5,6 @@ import com.vendo.product_service.security.common.config.JwtProperties;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +23,7 @@ public class JwtTokenBuilder {
     @Autowired
     private JwtProperties jwtProperties;
 
-    @Value("security.jwt.bad-secret-key")
+    @Value("${security.jwt.bad-secret-key}")
     private String BAD_SECRET_KEY;
 
 
@@ -103,6 +102,29 @@ public class JwtTokenBuilder {
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(1, ChronoUnit.MINUTES)))
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
+    }
+
+    public String generateTokenWithoutSubject(UserStatus status, List<String> roles) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .claim("roles", roles)
+                .claim(STATUS_CLAIM.getClaim(), status)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(1, ChronoUnit.MINUTES)))
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
+    }
+
+    public String generateUnsupportedAlgorithmToken(String subject, UserStatus status, List<String> roles) {
+        Instant now = Instant.now();
+
+        return Jwts.builder()
+                .subject(subject)
+                .claim("roles", roles)
+                .claim(STATUS_CLAIM.getClaim(), status)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(1, ChronoUnit.MINUTES)))
                 .compact();
     }
 

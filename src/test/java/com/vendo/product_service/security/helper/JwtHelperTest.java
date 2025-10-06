@@ -3,7 +3,12 @@ package com.vendo.product_service.security.helper;
 import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.builder.JwtTokenBuilder;
 import com.vendo.product_service.security.common.config.JwtProperties;
+import com.vendo.product_service.security.common.exception.InvalidTokenException;
 import com.vendo.product_service.security.common.helper.JwtHelper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +19,9 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
 
@@ -38,64 +45,99 @@ public class JwtHelperTest {
     void extractSubject_shouldReturnCorrectSubject() {
         String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
 
-        String subject = jwtHelper.extractSubject(token)
-                .orElseThrow(() -> new AssertionError("Subject should be present"));
+        String subject = jwtHelper.extractSubject(token).orElseThrow(() -> new AssertionError("Subject should be present"));
 
         assertThat(subject).isEqualTo("user-123");
     }
 
     @Test
     void parseRolesFromToken_shouldReturnCorrectRoles() {
-//        String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER", "ROLE_ADMIN"));
+        String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER", "ROLE_ADMIN"));
 
-//        List<SimpleGrantedAuthority> roles = jwtHelper.parseRolesFromToken(token);
+        List<SimpleGrantedAuthority> roles = jwtHelper.parseRolesFromToken(jwtHelper.extractAllClaims(token));
 
-//        assertThat(roles).extracting("authority").containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+        assertThat(roles).extracting("authority").containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
     }
 
     @Test
-    void isTokenExpired_shouldReturnFalseForValidToken() {
+    void parseRolesFromToken_shouldThrowInvalidTokenException_whenTokenWithoutRoles() {
+        String tokenWithoutRoles = tokenFactory.generateTokenWithoutRoles("user-123", UserStatus.ACTIVE);
+
+        InvalidTokenException exception = assertThrows(InvalidTokenException.class, () ->
+                jwtHelper.parseRolesFromToken(jwtHelper.extractAllClaims(tokenWithoutRoles))
+        );
+        assertThat(exception.getMessage()).isEqualTo("Invalid roles");
+    }
+
+    @Test
+    void parseUserStatus_shouldReturnCorrectUserStatus() {
         String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
 
-//        boolean expired = jwtHelper.isTokenExpired(token);
+        UserStatus userStatus = jwtHelper.parseUserStatus(jwtHelper.extractAllClaims(token));
 
-//        assertThat(expired).isFalse();
+        assertThat(userStatus).isEqualTo(UserStatus.ACTIVE);
     }
 
     @Test
-    void isTokenExpired_shouldReturnTrueForExpiredToken() {
+    void parseUserStatus_shouldThrowInvalidTokenException_whenTokenWithInvalidUserStatus() {
+        String tokenWithInvalidStatus = tokenFactory.generateTokenWithInvalidStatus("user-123", List.of("ROLE_USER"));
+
+        InvalidTokenException exception = assertThrows(InvalidTokenException.class, () ->
+                jwtHelper.parseUserStatus(jwtHelper.extractAllClaims(tokenWithInvalidStatus)));
+
+        assertThat(exception.getMessage()).isNotBlank();
+        assertThat(exception.getMessage()).isEqualTo("Invalid user status");
+    }
+
+    @Test
+    void parseSignedClaims_shouldReturnCorrectClaims() {
+        String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
+
+        Claims claims = jwtHelper.extractAllClaims(token);
+        List<SimpleGrantedAuthority> roles = jwtHelper.parseRolesFromToken(claims);
+        UserStatus status = jwtHelper.parseUserStatus(claims);
+
+        assertThat(claims).isNotNull();
+        assertThat(claims.getSubject()).isEqualTo("user-123");
+        assertThat(roles).extracting("authority").containsExactly("ROLE_USER");
+        assertThat(status).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    void parseSignedClaims_shouldThrowExpiredJwtException_whenTokenExpired() {
         String expiredToken = tokenFactory.generateExpiredToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
 
-//        boolean expired = jwtHelper.isTokenExpired(expiredToken);
+        ExpiredJwtException exception = assertThrows(ExpiredJwtException.class, () ->
+                jwtHelper.extractAllClaims(expiredToken)
+        );
 
-//        assertThat(expired).isTrue();
+        assertThat(exception.getMessage()).isNotBlank();
+        assertThat(exception.getMessage()).contains("JWT expired");
     }
 
     @Test
-    void extractClaim_shouldReturnNullForMissingStatus() {
-        String tokenWithoutStatus = tokenFactory.generateTokenWithoutStatus("user-123", List.of("ROLE_USER"));
+    void extractClaim_shouldReturnClaimValue() {
+        String token = tokenFactory.generateAccessToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
 
-        Object status = jwtHelper.extractClaim(tokenWithoutStatus, claims -> claims.get("status"))
-                .orElse(null);
+        Claims claims = jwtHelper.extractAllClaims(token);
+        UserStatus status = jwtHelper.parseUserStatus(claims);
+        String subject = jwtHelper.extractClaim(token, Claims::getSubject)
+                .orElseThrow(() -> new AssertionError("Subject should be present"));
+        List<SimpleGrantedAuthority> roles = jwtHelper.parseRolesFromToken(claims);
 
-        assertThat(status).isNull();
+        assertThat(claims).isNotNull();
+        assertThat(subject).isEqualTo("user-123");
+        assertThat(status).isEqualTo(UserStatus.ACTIVE);
+        assertThat(roles).extracting("authority").containsExactlyInAnyOrder("ROLE_USER");
     }
 
     @Test
-    void extractClaim_shouldReturnInvalidStatusString() {
-        String tokenInvalidStatus = tokenFactory.generateTokenWithInvalidStatus("user-123", List.of("ROLE_USER"));
+    void extractAllClaims_shouldThrowJwtException_whenInvalidFormatToken () {
+        String invalidFormatToken = tokenFactory.generateInvalidFormatToken();
 
-        Object status = jwtHelper.extractClaim(tokenInvalidStatus, claims -> claims.get("status"))
-                .orElse(null);
-
-        assertThat(status).isEqualTo("INVALID_STATUS");
+        JwtException exception = assertThrows(JwtException.class, () ->
+                jwtHelper.extractAllClaims(invalidFormatToken)
+        );
+        assertThat(exception.getMessage()).isNotBlank();
     }
-
-    @Test
-    void parseRolesFromToken_shouldReturnEmptyList_whenRolesMissing() {
-//        String tokenWithoutRoles = tokenFactory.generateTokenWithoutRoles("user-123", UserStatus.ACTIVE);
-//        List<SimpleGrantedAuthority> roles = jwtHelper.parseRolesFromToken(tokenWithoutRoles);
-//        assertThat(roles).isEmpty();
-    }
-
 }

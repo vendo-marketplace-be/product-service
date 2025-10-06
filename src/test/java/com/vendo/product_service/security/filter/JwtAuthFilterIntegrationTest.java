@@ -93,7 +93,7 @@ public class JwtAuthFilterIntegrationTest {
         String responseContent = response.getContentAsString();
 
         assertThat(responseContent).isNotBlank();
-        assertThat(responseContent).isEqualTo("Token has expired or invalid");
+        assertThat(responseContent).isEqualTo("Missing or invalid Authorization header");
     }
 
     @Test
@@ -123,24 +123,37 @@ public class JwtAuthFilterIntegrationTest {
     }
 
     @Test
-    void doFilterInternal_shouldReturnForbidden_whenUserStatusMissing() throws Exception {
-        String tokenWithoutStatus = tokenFactory.generateTokenWithoutStatus("user-123", List.of("ROLE_USER"));
+    void doFilterInternal_shouldReturnUnauthorized_whenTokenWithoutRoles() throws Exception {
+        String tokenWithoutRoles = tokenFactory.generateTokenWithoutRoles("user-123", UserStatus.ACTIVE);
 
-        MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + tokenWithoutStatus))
-                .andExpect(status().isForbidden())
+        MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + tokenWithoutRoles))
+                .andExpect(status().isUnauthorized())
                 .andReturn().getResponse();
         String responseContent = response.getContentAsString();
 
         assertThat(responseContent).isNotBlank();
-        assertThat(responseContent).isEqualTo("User status missing");
+        assertThat(responseContent).isEqualTo("Invalid roles");
     }
 
     @Test
-    void doFilterInternal_shouldReturnForbidden_whenTokenHasInvalidStatus() throws Exception {
+    void doFilterInternal_shouldReturnUnauthorized_whenUserStatusMissing() throws Exception {
+        String tokenWithoutStatus = tokenFactory.generateTokenWithoutStatus("user-123", List.of("ROLE_USER"));
+
+        MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + tokenWithoutStatus))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
+
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Invalid user status");
+    }
+
+    @Test
+    void doFilterInternal_shouldReturnUnauthorized_whenTokenHasInvalidStatus() throws Exception {
         String tokenWithInvalidStatus = tokenFactory.generateTokenWithInvalidStatus("user-123", List.of("ROLE_USER"));
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + tokenWithInvalidStatus))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isUnauthorized())
                 .andReturn().getResponse();
         String responseContent = response.getContentAsString();
 
@@ -174,4 +187,32 @@ public class JwtAuthFilterIntegrationTest {
         assertThat(responseContent).isEqualTo("Token has expired or invalid");
 
     }
+
+    @Test
+    void doFilterInternal_shouldReturnUnauthorized_whenTokenWithoutSubject() throws Exception {
+        String tokenWithoutSubject = tokenFactory.generateTokenWithoutSubject(UserStatus.ACTIVE, List.of("ROLE_USER"));
+
+        MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + tokenWithoutSubject))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
+
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Token subject missing");
+    }
+
+    @Test
+    void doFilterInternal_shouldReturnUnauthorized_whenTokenHasUnsupportedAlgorithm() throws Exception {
+        String unsupportedToken = tokenFactory.generateUnsupportedAlgorithmToken("user-123", UserStatus.ACTIVE, List.of("ROLE_USER"));
+
+        MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + unsupportedToken))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        String responseContent = response.getContentAsString();
+
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Token has expired or invalid");
+    }
+
+
 }
