@@ -163,7 +163,7 @@ public class JwtAuthFilterIntegrationTest {
 
     @Test
     void doFilterInternal_shouldReturnUnauthorized_whenTokenIsInvalidFormatToken() throws Exception {
-        String malformedToken = tokenFactory.generateInvalidFormatToken();
+        String malformedToken = JwtTokenBuilder.INVALID_TOKEN_FORMAT;
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + malformedToken))
                 .andExpect(status().isUnauthorized())

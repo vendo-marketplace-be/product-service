@@ -132,12 +132,11 @@ public class JwtHelperTest {
     }
 
     @Test
-    void extractAllClaims_shouldThrowJwtException_whenInvalidFormatToken () {
-        String invalidFormatToken = tokenFactory.generateInvalidFormatToken();
-
+    void extractAllClaims_shouldThrowJwtException_whenInvalidFormatToken() {
         JwtException exception = assertThrows(JwtException.class, () ->
-                jwtHelper.extractAllClaims(invalidFormatToken)
+                jwtHelper.extractAllClaims(JwtTokenBuilder.INVALID_TOKEN_FORMAT)
         );
+
         assertThat(exception.getMessage()).isNotBlank();
     }
 }

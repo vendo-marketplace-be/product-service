@@ -14,7 +14,7 @@ import static jakarta.servlet.http.HttpServletResponse.*;
 
 @Slf4j
 @RestControllerAdvice
-public class AuthenticationFilterExceptionHandler {
+public class AuthExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException e) {
@@ -41,11 +41,5 @@ public class AuthenticationFilterExceptionHandler {
     public ResponseEntity<Object> handleExpiredJwtException(ExpiredJwtException e) {
         log.warn("ExpiredJwtException: ", e);
         return ResponseEntity.status(SC_UNAUTHORIZED).body("Token has expired");
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.error("IllegalArgumentException: ", e);
-        return ResponseEntity.status(SC_INTERNAL_SERVER_ERROR).body("Authorization failed");
     }
 }
