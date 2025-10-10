@@ -1,7 +1,7 @@
 package com.vendo.product_service.security.filter;
 
 import com.vendo.domain.user.common.type.UserStatus;
-import com.vendo.product_service.builder.JwtTokenBuilder;
+import com.vendo.product_service.service.JwtService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ public class JwtAuthFilterIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JwtTokenBuilder tokenFactory;
+    private JwtService tokenFactory;
 
     @BeforeEach
     void setUp() {
@@ -163,7 +163,7 @@ public class JwtAuthFilterIntegrationTest {
 
     @Test
     void doFilterInternal_shouldReturnUnauthorized_whenTokenIsInvalidFormatToken() throws Exception {
-        String malformedToken = JwtTokenBuilder.INVALID_TOKEN_FORMAT;
+        String malformedToken = JwtService.INVALID_TOKEN_FORMAT;
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping").header(AUTHORIZATION, "Bearer " + malformedToken))
                 .andExpect(status().isUnauthorized())

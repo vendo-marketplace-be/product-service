@@ -1,7 +1,7 @@
 package com.vendo.product_service.security.helper;
 
 import com.vendo.domain.user.common.type.UserStatus;
-import com.vendo.product_service.builder.JwtTokenBuilder;
+import com.vendo.product_service.service.JwtService;
 import com.vendo.product_service.security.common.config.JwtProperties;
 import com.vendo.product_service.security.common.exception.InvalidTokenException;
 import com.vendo.product_service.security.common.helper.JwtHelper;
@@ -31,7 +31,7 @@ public class JwtHelperTest {
     private JwtProperties jwtProperties;
 
     @Autowired
-    private JwtTokenBuilder tokenFactory;
+    private JwtService tokenFactory;
 
     private JwtHelper jwtHelper;
 
@@ -134,7 +134,7 @@ public class JwtHelperTest {
     @Test
     void extractAllClaims_shouldThrowJwtException_whenInvalidFormatToken() {
         JwtException exception = assertThrows(JwtException.class, () ->
-                jwtHelper.extractAllClaims(JwtTokenBuilder.INVALID_TOKEN_FORMAT)
+                jwtHelper.extractAllClaims(JwtService.INVALID_TOKEN_FORMAT)
         );
 
         assertThat(exception.getMessage()).isNotBlank();
