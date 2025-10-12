@@ -5,3 +5,4 @@ security:
   jwt:
     secret-key: secretKeysecretKeysecretKeysecretKeysecretKey
     bad-secret-key: wrongSecretKeywrongSecretKeywrongSecretKeywrongSecretKey
+    expirationMillis: 60000
