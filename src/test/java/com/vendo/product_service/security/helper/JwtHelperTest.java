@@ -43,6 +43,9 @@ public class JwtHelperTest {
     @Value("${security.jwt.expirationMillis}")
     private int EXPIRATION_TIME;
 
+    public static final String INVALID_TOKEN_FORMAT = "this.is.not.a.jwt";
+    public static final String INVALID_STATUS = "INVALID_STATUS";
+
     @BeforeEach
     void setup() {
         jwtHelper = new JwtHelper(jwtProperties);
@@ -124,7 +127,10 @@ public class JwtHelperTest {
 
     @Test
     void parseUserStatus_shouldThrowInvalidTokenException_whenTokenWithInvalidUserStatus() {
-        Map<String, Object> claims = Map.of(ROLES_CLAIM.getClaim(), List.of("ROLE_USER"));
+        Map<String, Object> claims = Map.of(
+                STATUS_CLAIM.getClaim(), INVALID_STATUS,
+                ROLES_CLAIM.getClaim(), List.of("ROLE_USER")
+        );
         JwtPayload payload = JwtPayload.builder()
                 .subject("user-123")
                 .claims(claims)
@@ -215,7 +221,7 @@ public class JwtHelperTest {
     @Test
     void extractAllClaims_shouldThrowJwtException_whenInvalidFormatToken() {
         JwtException exception = assertThrows(JwtException.class, () ->
-                jwtHelper.extractAllClaims(JwtService.INVALID_TOKEN_FORMAT)
+                jwtHelper.extractAllClaims(INVALID_TOKEN_FORMAT)
         );
 
         assertThat(exception.getMessage()).isNotBlank();

@@ -23,11 +23,6 @@ import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 @Service
 public class JwtService {
 
-    // TODO move to responsible class
-    public static final String INVALID_TOKEN_FORMAT = "this.is.not.a.jwt";
-
-    public static final String INVALID_STATUS = "INVALID_STATUS";
-
     @Autowired
     private JwtProperties jwtProperties;
 
