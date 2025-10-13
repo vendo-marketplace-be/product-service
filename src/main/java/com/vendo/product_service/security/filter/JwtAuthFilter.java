@@ -51,7 +51,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             Claims claims = jwtHelper.extractAllClaims(jwtToken);
 
             String subject = validateUserAccessibility(jwtToken, claims);
-            addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(claims));
+            addAuthenticationToContext(subject, jwtHelper.parseRoles(claims));
         } catch (Exception e) {
             handlerExceptionResolver.resolveException(request, response, null, e);
             return;

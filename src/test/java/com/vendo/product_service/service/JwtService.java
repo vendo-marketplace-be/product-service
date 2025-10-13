@@ -5,7 +5,7 @@ import com.vendo.product_service.security.common.config.JwtProperties;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,13 +14,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
-
-    @Autowired
-    private JwtProperties jwtProperties;
 
     @Value("${security.jwt.bad-secret-key}")
     private String BAD_SECRET_KEY;
+
+    private final JwtProperties jwtProperties;
+
+    public static final String ROLE_USER = "ROLE_USER";
+
+    public static final String INVALID_STATUS = "INVALID_STATUS";
+
+    public static final String INVALID_TOKEN_FORMAT = "INVALID_TOKEN_FORMAT";
 
     public SecretKey getSecretKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));

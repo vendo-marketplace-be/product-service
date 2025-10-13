@@ -32,7 +32,7 @@ public class JwtHelper {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public List<SimpleGrantedAuthority> parseRolesFromToken(Claims claims) {
+    public List<SimpleGrantedAuthority> parseRoles(Claims claims) {
         Object rolesClaim = claims.get(ROLES_CLAIM.getClaim());
 
         if (rolesClaim instanceof List<?> roles) {
