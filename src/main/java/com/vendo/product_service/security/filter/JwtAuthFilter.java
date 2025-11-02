@@ -1,21 +1,24 @@
 package com.vendo.product_service.security.filter;
 
-import com.vendo.product_service.security.common.exception.handler.AuthenticationFilterExceptionHandler;
-import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.domain.user.common.type.UserStatus;
+import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.security.common.exception.AccessDeniedException;
+import com.vendo.security.common.exception.InvalidTokenException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,13 +36,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final ProductAntPathResolver productAntPathResolver;
 
-    private final AuthenticationFilterExceptionHandler authenticationFilterExceptionHandler;
+    @Qualifier("handlerExceptionResolver")
+    private final HandlerExceptionResolver handlerExceptionResolver;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
-        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        if (securityContext.getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -50,11 +53,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             String subject = jwtHelper.extractSubject(jwtToken);
             addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(jwtToken));
-
-            filterChain.doFilter(request, response);
         } catch (Exception e) {
-            authenticationFilterExceptionHandler.handle(e, response);
+            handlerExceptionResolver.resolveException(request, response, null, e);
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 
     @Override
@@ -70,18 +74,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return authorization.substring(BEARER_PREFIX.length());
         }
 
-        throw new AuthenticationCredentialsNotFoundException("Missing or invalid Authorization header");
+        throw new InvalidTokenException("Missing or invalid Authorization header");
     }
 
     private void validateUserAccessibility(String jwtToken) {
-        boolean tokenExpired = jwtHelper.isTokenExpired(jwtToken);
-        if (tokenExpired) {
+        if (jwtHelper.isTokenExpired(jwtToken)) {
             throw new AuthenticationCredentialsNotFoundException("Token expired");
         }
 
-        Object statusTarget = jwtHelper.extractClaim(jwtToken, claims -> claims.get(STATUS_CLAIM.getClaim()));
-        if (statusTarget == null || UserStatus.BLOCKED.equals(statusTarget)) {
-            throw new AccessDeniedException("User is blocked");
+        UserStatus status = jwtHelper.extractClaim(jwtToken,
+                claims -> UserStatus.valueOf(String.valueOf(claims.get(STATUS_CLAIM.getClaim())))
+        );
+
+        if (status != UserStatus.ACTIVE) {
+            throw new AccessDeniedException("User is not active");
         }
     }
 
