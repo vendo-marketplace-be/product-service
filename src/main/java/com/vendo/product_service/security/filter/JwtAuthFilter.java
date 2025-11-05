@@ -87,7 +87,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         );
 
         if (status != UserStatus.ACTIVE) {
-            throw new AccessDeniedException("User is not active");
+            throw new AccessDeniedException("User is unactive");
         }
     }
 
