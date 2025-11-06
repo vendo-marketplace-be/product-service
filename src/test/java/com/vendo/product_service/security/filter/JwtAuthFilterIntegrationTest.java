@@ -96,8 +96,10 @@ public class JwtAuthFilterIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andReturn()
                 .getResponse();
+        String responseContent = response.getContentAsString();
 
-        assertThat(response.getContentAsString()).isEqualTo("Token expired");
+        assertThat(responseContent).isNotBlank();
+        assertThat(responseContent).isEqualTo("Token expired");
     }
 
     @Test
@@ -112,7 +114,9 @@ public class JwtAuthFilterIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andReturn()
                 .getResponse();
+        String responseContent = response.getContentAsString();
 
+        assertThat(responseContent).isNotBlank();
         assertThat(response.getContentAsString()).isEqualTo("User is unactive");
     }
 
@@ -128,7 +132,9 @@ public class JwtAuthFilterIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andReturn()
                 .getResponse();
+        String responseContent = response.getContentAsString();
 
+        assertThat(responseContent).isNotBlank();
         assertThat(response.getContentAsString()).isEqualTo("User is unactive");
     }
 }

@@ -29,7 +29,7 @@ public class AuthenticationFilterExceptionHandler {
     @ExceptionHandler(ExpiredJwtException.class)
     public ResponseEntity<String> handleExpiredJwtException(ExpiredJwtException e) {
         log.warn("ExpiredJwtException: ", e);
-        return ResponseEntity.status(HttpStatus.SC_UNAUTHORIZED).body("Token has expired");
+        return ResponseEntity.status(HttpStatus.SC_UNAUTHORIZED).body("Token expired");
     }
 
     @ExceptionHandler(JwtException.class)
