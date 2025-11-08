@@ -73,7 +73,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return authorization.substring(BEARER_PREFIX.length());
         }
 
-        throw new InvalidTokenException("Missing or invalid Authorization header");
+        throw new InvalidTokenException("Missing or invalid Authorization header.");
     }
 
     private void validateUserAccessibility(String jwtToken) {
@@ -82,7 +82,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         );
 
         if (status != UserStatus.ACTIVE) {
-            throw new AccessDeniedException("User is unactive");
+            throw new AccessDeniedException("User is unactive.");
         }
     }
 
