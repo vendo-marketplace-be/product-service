@@ -77,8 +77,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private void validateUserAccessibility(String jwtToken) {
-        UserStatus status = jwtHelper.extractClaim(jwtToken,
-                claims -> UserStatus.valueOf(String.valueOf(claims.get(STATUS_CLAIM.getClaim())))
+        UserStatus status = UserStatus.valueOf(
+                String.valueOf(jwtHelper.extractAllClaims(jwtToken).get(STATUS_CLAIM.getClaim()))
         );
 
         if (status != UserStatus.ACTIVE) {
