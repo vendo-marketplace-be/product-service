@@ -1,3 +1,5 @@
+server:
+  url: server_test_url
 security:
   jwt:
     secret-key: secretkeysecretkeysecretkeysecretkeysecretkeysecretkeysecretkeysecretkeysecretkey
