@@ -17,6 +17,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static com.google.common.net.HttpHeaders.AUTHORIZATION;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -82,10 +84,12 @@ public class JwtAuthFilterIntegrationTest {
         String token = JwtTestHelper.createToken(
                 jwtHelper.getSignInKey(),
                 "user@example.com",
-                UserStatus.ACTIVE);
+                UserStatus.ACTIVE,
+                List.of("ROLE_USER")
+        );
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping")
-                .header(AUTHORIZATION, token))
+                        .header(AUTHORIZATION, token))
                 .andExpect(status().isUnauthorized())
                 .andReturn()
                 .getResponse();
@@ -102,7 +106,9 @@ public class JwtAuthFilterIntegrationTest {
         String token = JwtTestHelper.createToken(
                 jwtHelper.getSignInKey(),
                 "user@example.com",
-                UserStatus.ACTIVE);
+                UserStatus.ACTIVE,
+                List.of("ROLE_USER")
+        );
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping")
                         .header(AUTHORIZATION, "Bearer " + token))
@@ -118,7 +124,9 @@ public class JwtAuthFilterIntegrationTest {
         String expiredToken = JwtTestHelper.createExpiredToken(
                 jwtHelper.getSignInKey(),
                 "user@example.com",
-                UserStatus.ACTIVE);
+                UserStatus.ACTIVE,
+                List.of("ROLE_USER")
+        );
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping")
                         .header(AUTHORIZATION, "Bearer " + expiredToken))
@@ -138,7 +146,9 @@ public class JwtAuthFilterIntegrationTest {
         String blockedToken = JwtTestHelper.createToken(
                 jwtHelper.getSignInKey(),
                 "user@example.com",
-                UserStatus.BLOCKED);
+                UserStatus.BLOCKED,
+                List.of("ROLE_USER")
+        );
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping")
                         .header(AUTHORIZATION, "Bearer " + blockedToken))
@@ -158,7 +168,9 @@ public class JwtAuthFilterIntegrationTest {
         String blockedToken = JwtTestHelper.createToken(
                 jwtHelper.getSignInKey(),
                 "user@example.com",
-                UserStatus.INCOMPLETE);
+                UserStatus.INCOMPLETE,
+                List.of("ROLE_USER")
+        );
 
         MockHttpServletResponse response = mockMvc.perform(get("/test/ping")
                         .header(AUTHORIZATION, "Bearer " + blockedToken))

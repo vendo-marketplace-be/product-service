@@ -4,6 +4,7 @@ import com.vendo.domain.user.common.type.UserStatus;
 import com.vendo.product_service.security.common.helper.JwtHelper;
 import com.vendo.security.common.exception.AccessDeniedException;
 import com.vendo.security.common.exception.InvalidTokenException;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ import java.util.List;
 
 import static com.vendo.security.common.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.vendo.security.common.constants.AuthConstants.BEARER_PREFIX;
+import static com.vendo.security.common.type.TokenClaim.ROLES_CLAIM;
 import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 
 @Slf4j
@@ -48,10 +50,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             String jwtToken = getTokenFromRequest(request);
-            validateUserAccessibility(jwtToken);
+            Claims claims = jwtHelper.extractAllClaims(jwtToken);
 
-            String subject = jwtHelper.extractSubject(jwtToken);
-            addAuthenticationToContext(subject, jwtHelper.parseRolesFromToken(jwtToken));
+            validateUserAccessibility(claims);
+            addAuthenticationToContext(claims);
         } catch (Exception e) {
             handlerExceptionResolver.resolveException(request, response, null, e);
             return;
@@ -76,22 +78,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         throw new InvalidTokenException("Missing or invalid Authorization header.");
     }
 
-    private void validateUserAccessibility(String jwtToken) {
-        UserStatus status = UserStatus.valueOf(
-                String.valueOf(jwtHelper.extractAllClaims(jwtToken).get(STATUS_CLAIM.getClaim()))
-        );
+    private void validateUserAccessibility(Claims claims) {
+        UserStatus status = UserStatus.valueOf(claims.get(STATUS_CLAIM.getClaim(), String.class));
 
         if (status != UserStatus.ACTIVE) {
             throw new AccessDeniedException("User is unactive.");
         }
     }
 
-    private void addAuthenticationToContext(String subject, List<SimpleGrantedAuthority> roles) {
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                subject,
-                null,
-                roles
-        );
+    private void addAuthenticationToContext(Claims claims) {
+        String email = claims.getSubject();
+        List<String> roles = claims.get(ROLES_CLAIM.getClaim(), List.class);
+
+        List<SimpleGrantedAuthority> authorities = roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(email, null, authorities);
+
         SecurityContextHolder.getContext().setAuthentication(authToken);
     }
 }
