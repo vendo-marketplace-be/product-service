@@ -18,7 +18,7 @@ public class AuthenticationFilterExceptionHandler {
     public ResponseEntity<ExceptionResponse> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.builder()
                 .message(e.getMessage())
-                .type("AccessDeniedException")
+                .type(AccessDeniedException.class.getTypeName())
                 .code(HttpStatus.FORBIDDEN.value())
                 .path(request.getRequestURI())
                 .build();
@@ -30,7 +30,7 @@ public class AuthenticationFilterExceptionHandler {
     public ResponseEntity<ExceptionResponse> handleAuthenticationException(InvalidTokenException e, HttpServletRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.builder()
                 .message(e.getMessage())
-                .type("InvalidTokenException")
+                .type(InvalidTokenException.class.getTypeName())
                 .code(HttpStatus.UNAUTHORIZED.value())
                 .path(request.getRequestURI())
                 .build();
@@ -42,7 +42,7 @@ public class AuthenticationFilterExceptionHandler {
     public ResponseEntity<ExceptionResponse> handleExpiredJwtException(ExpiredJwtException e, HttpServletRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.builder()
                 .message("Token has expired.")
-                .type("ExpiredJwtException")
+                .type(ExpiredJwtException.class.getTypeName())
                 .code(HttpStatus.UNAUTHORIZED.value())
                 .path(request.getRequestURI())
                 .build();
@@ -54,7 +54,7 @@ public class AuthenticationFilterExceptionHandler {
     public ResponseEntity<ExceptionResponse> handleJwtException(JwtException e,  HttpServletRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.builder()
                 .message(e.getMessage())
-                .type("JwtException")
+                .type(JwtException.class.getTypeName())
                 .code(HttpStatus.UNAUTHORIZED.value())
                 .path(request.getRequestURI())
                 .build();

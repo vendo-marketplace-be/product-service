@@ -75,7 +75,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return authorization.substring(BEARER_PREFIX.length());
         }
 
-        throw new InvalidTokenException("Missing or invalid Authorization header.");
+        throw new InvalidTokenException("Invalid token.");
     }
 
     private void validateUserAccessibility(Claims claims) {

@@ -75,7 +75,7 @@ public class JwtAuthFilterIntegrationTest {
 
         assertThat(responseContent).isNotBlank();
         ExceptionResponse exceptionResponse = objectMapper.readValue(responseContent, ExceptionResponse.class);
-        assertThat(exceptionResponse.message()).isEqualTo("Missing or invalid Authorization header.");
+        assertThat(exceptionResponse.message()).isEqualTo("Invalid token.");
         assertThat(exceptionResponse.code()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
     }
 
@@ -97,7 +97,7 @@ public class JwtAuthFilterIntegrationTest {
 
         assertThat(responseContent).isNotBlank();
         ExceptionResponse exceptionResponse = objectMapper.readValue(responseContent, ExceptionResponse.class);
-        assertThat(exceptionResponse.message()).isEqualTo("Missing or invalid Authorization header.");
+        assertThat(exceptionResponse.message()).isEqualTo("Invalid token.");
         assertThat(exceptionResponse.code()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
     }
 
