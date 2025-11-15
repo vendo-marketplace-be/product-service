@@ -1,49 +1,64 @@
 package com.vendo.product_service.security.common.exception.handler;
 
+import com.vendo.common.exception.ExceptionResponse;
 import com.vendo.security.common.exception.AccessDeniedException;
+import com.vendo.security.common.exception.InvalidTokenException;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.http.HttpStatus;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.stereotype.Component;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.io.IOException;
-
-@Slf4j
-@Component
+@RestControllerAdvice
 public class AuthenticationFilterExceptionHandler {
 
-    public void handle(Exception e, HttpServletResponse response) {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ExceptionResponse> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
+        ExceptionResponse exceptionResponse = ExceptionResponse.builder()
+                .message(e.getMessage())
+                .type(AccessDeniedException.class.getSimpleName())
+                .code(HttpStatus.FORBIDDEN.value())
+                .path(request.getRequestURI())
+                .build();
 
-        if (e instanceof AccessDeniedException) {
-            log.warn("AccessDeniedException: {}", e.getMessage());
-            writeExceptionResponse(e.getMessage(), HttpStatus.SC_FORBIDDEN, response);
-            return;
-        }
-
-        if (e instanceof AuthenticationException) {
-            log.warn("AuthenticationException: {}", e.getMessage());
-            writeExceptionResponse(e.getMessage(), HttpStatus.SC_UNAUTHORIZED, response);
-            return;
-        }
-
-        if (e instanceof JwtException) {
-            log.warn("JwtException: {}", e.getMessage());
-            writeExceptionResponse("Token has expired or invalid", HttpStatus.SC_UNAUTHORIZED, response);
-        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(exceptionResponse);
     }
 
-    private void writeExceptionResponse(Object responseTarget, int statusCode, HttpServletResponse response) {
-        try {
-            if (responseTarget == null) {
-                throw new IllegalArgumentException("Response target cannot be null");
-            }
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ExceptionResponse> handleAuthenticationException(InvalidTokenException e, HttpServletRequest request) {
+        ExceptionResponse exceptionResponse = ExceptionResponse.builder()
+                .message(e.getMessage())
+                .type(InvalidTokenException.class.getSimpleName())
+                .code(HttpStatus.UNAUTHORIZED.value())
+                .path(request.getRequestURI())
+                .build();
 
-            response.setStatus(statusCode);
-            response.getWriter().write(String.valueOf(responseTarget));
-        } catch (IOException e) {
-            log.error("IOException: ", e);
-        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exceptionResponse);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ExceptionResponse> handleExpiredJwtException(ExpiredJwtException e, HttpServletRequest request) {
+        ExceptionResponse exceptionResponse = ExceptionResponse.builder()
+                .message("Token has expired.")
+                .type(ExpiredJwtException.class.getSimpleName())
+                .code(HttpStatus.UNAUTHORIZED.value())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exceptionResponse);
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ExceptionResponse> handleJwtException(JwtException e,  HttpServletRequest request) {
+        ExceptionResponse exceptionResponse = ExceptionResponse.builder()
+                .message(e.getMessage())
+                .type(JwtException.class.getSimpleName())
+                .code(HttpStatus.UNAUTHORIZED.value())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exceptionResponse);
     }
 }
