@@ -9,7 +9,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.List;
 
-public class JwtDataBuilder {
+public class JwtTokenDataBuilder {
 
     public static JwtBuilder buildTokenWithRequiredFields(Key key) {
         return Jwts.builder()
@@ -17,7 +17,7 @@ public class JwtDataBuilder {
                 .claim(TokenClaim.ROLES_CLAIM.getClaim(), List.of("ROLE_USER"))
                 .subject("user@example.com")
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 3600000))
+                .expiration(new Date(System.currentTimeMillis() + 60000))
                 .signWith(key);
     }
 }
