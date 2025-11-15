@@ -18,7 +18,7 @@ public class AuthenticationFilterExceptionHandler {
     public ResponseEntity<ExceptionResponse> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.builder()
                 .message(e.getMessage())
-                .type(AccessDeniedException.class.getTypeName())
+                .type(AccessDeniedException.class.getSimpleName())
                 .code(HttpStatus.FORBIDDEN.value())
                 .path(request.getRequestURI())
                 .build();
@@ -54,7 +54,7 @@ public class AuthenticationFilterExceptionHandler {
     public ResponseEntity<ExceptionResponse> handleJwtException(JwtException e,  HttpServletRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.builder()
                 .message(e.getMessage())
-                .type(JwtException.class.getTypeName())
+                .type(JwtException.class.getSimpleName())
                 .code(HttpStatus.UNAUTHORIZED.value())
                 .path(request.getRequestURI())
                 .build();
