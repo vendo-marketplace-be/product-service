@@ -79,7 +79,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private void validateUserAccessibility(Claims claims) {
-        UserStatus status = UserStatus.valueOf(claims.get(STATUS_CLAIM.getClaim(), String.class));
+        UserStatus status = jwtHelper.extractUserStatusClaim(claims);
 
         if (status != UserStatus.ACTIVE) {
             throw new AccessDeniedException("User is unactive.");
@@ -87,7 +87,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private void addAuthenticationToContext(Claims claims) {
-        String email = claims.getSubject();
         List<String> roles = claims.get(ROLES_CLAIM.getClaim(), List.class);
 
         List<SimpleGrantedAuthority> authorities = roles.stream()
@@ -95,7 +94,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .toList();
 
         UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(email, null, authorities);
+                new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities);
 
         SecurityContextHolder.getContext().setAuthentication(authToken);
     }
