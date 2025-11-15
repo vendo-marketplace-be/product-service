@@ -25,8 +25,6 @@ import java.util.List;
 
 import static com.vendo.security.common.constants.AuthConstants.AUTHORIZATION_HEADER;
 import static com.vendo.security.common.constants.AuthConstants.BEARER_PREFIX;
-import static com.vendo.security.common.type.TokenClaim.ROLES_CLAIM;
-import static com.vendo.security.common.type.TokenClaim.STATUS_CLAIM;
 
 @Slf4j
 @Component
@@ -87,11 +85,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private void addAuthenticationToContext(Claims claims) {
-        List<String> roles = claims.get(ROLES_CLAIM.getClaim(), List.class);
-
-        List<SimpleGrantedAuthority> authorities = roles.stream()
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+        List<SimpleGrantedAuthority> authorities = jwtHelper.extractAuthoritiesClaim(claims);
 
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities);

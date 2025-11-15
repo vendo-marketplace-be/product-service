@@ -39,7 +39,7 @@ public class JwtAuthFilterIntegrationTest {
     private ObjectMapper objectMapper;
 
     @BeforeEach
-    void clearContext() {
+    void setUp() {
         SecurityContextHolder.clearContext();
     }
 
